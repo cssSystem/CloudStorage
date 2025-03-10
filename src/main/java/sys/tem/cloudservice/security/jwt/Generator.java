@@ -10,8 +10,12 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
+import static org.springframework.util.StringUtils.hasText;
+
 @Component
 public class Generator {
+
+    private static final String PREFIX_BEARER = "Bearer ";
     private static final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS512);
     private Long expiration = 3600000L;
     private String messageErr = "Не коректен ключ";
@@ -47,5 +51,11 @@ public class Generator {
         } catch (Exception e) {
             throw new AuthenticationCredentialsNotFoundException(messageErr, e.fillInStackTrace());
         }
+    }
+
+    public String getTokenFromRequest(String bearerToken) {
+        return hasText(bearerToken) && bearerToken.startsWith(PREFIX_BEARER) ?
+                bearerToken.substring(7) :
+                null;
     }
 }

@@ -1,25 +1,27 @@
 package sys.tem.cloudservice.security.service;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import lombok.extern.log4j.Log4j2;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
+import sys.tem.cloudservice.exception.InvalidUserCredentialsException;
 import sys.tem.cloudservice.security.jwt.Generator;
 import sys.tem.cloudservice.security.model.dto.AuthToken;
 import sys.tem.cloudservice.security.model.dto.Login;
 import sys.tem.cloudservice.security.model.entity.UserEnt;
 
+import java.lang.invoke.MethodHandles;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static sys.tem.cloudservice.CloudserviceApplication.MI;
 
+@Log4j2
 @ExtendWith(MockitoExtension.class)
 public class AuthServiceTest {
     @Mock
@@ -28,6 +30,16 @@ public class AuthServiceTest {
     private Generator generator;
     @InjectMocks
     private AuthService authService;
+
+    @BeforeAll
+    public static void initTest() {
+        log.info(MI, "---Start {} ---", MethodHandles.lookup().lookupClass().getTypeName());
+    }
+
+    @AfterAll
+    public static void endTest() {
+        log.info(MI, "---End {} ---", MethodHandles.lookup().lookupClass().getTypeName());
+    }
 
     @Test
     @DisplayName("Корректная аутентификация")
@@ -50,13 +62,11 @@ public class AuthServiceTest {
         when(generator.generateToken(mockAuth)).thenReturn(token);
 
         // Запрос
-        ResponseEntity<?> response = authService.login(request);
+        AuthToken authToken = authService.login(request);
 
         // Проверка
-        Assertions.assertNotNull(response);
-        Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
-        Assertions.assertInstanceOf(AuthToken.class, response.getBody());
-        Assertions.assertEquals(token, ((AuthToken) response.getBody()).authToken());
+        Assertions.assertNotNull(authToken);
+        Assertions.assertEquals(token, authToken.authToken());
     }
 
     @Test
@@ -70,10 +80,7 @@ public class AuthServiceTest {
         // аутентификация
         when(authenticationManager.authenticate(any())).thenThrow();
 
-        // запрос
-        ResponseEntity<?> response = authService.login(request);
-
         // Проверка
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        Assertions.assertThrows(InvalidUserCredentialsException.class, () -> authService.login(request));
     }
 }

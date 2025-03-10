@@ -13,12 +13,17 @@ import java.io.IOException;
 
 public class FileExceptionAdvice extends ResponseEntityExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({FilesNotFoundException.class,
+    @ExceptionHandler({
+            FilesNotFoundException.class,
             IOException.class,
-            UserNotFoundException.class})
+            UserNotFoundException.class,
+            FileNotSaveException.class,
+            InvalidUserCredentialsException.class
+    })
     public ErrorDTO handleFilesNotFoundException(Exception ex) {
         return new ErrorDTO(ex.getMessage(), 400);
     }
+
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)

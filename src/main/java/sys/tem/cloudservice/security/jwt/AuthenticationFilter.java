@@ -15,20 +15,18 @@ import sys.tem.cloudservice.security.service.UserDetalsImp;
 import java.io.IOException;
 
 import static java.util.Objects.nonNull;
-import static org.springframework.util.StringUtils.hasText;
 
 @Component
 @RequiredArgsConstructor
 public class AuthenticationFilter extends OncePerRequestFilter {
-    private static final String HEADER_AUTHORIZATION = "Auth-Token";
-    private static final String PREFIX_BEARER = "Bearer ";
+    private final String HEADER_AUTHORIZATION = "Auth-Token";
 
     private final Generator tokenGenerator;
     private final UserDetalsImp userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        final var token = getTokenFromRequest(request);
+        final var token = tokenGenerator.getTokenFromRequest(request.getHeader(HEADER_AUTHORIZATION));
         if (nonNull(token) && tokenGenerator.validateToken(token)) {
             final var username = tokenGenerator.getUsernameFromToken(token);
             final var userDetails = userDetailsService.loadUserByUsername(username);
@@ -39,10 +37,5 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String getTokenFromRequest(HttpServletRequest request) {
-        final var bearerToken = request.getHeader(HEADER_AUTHORIZATION);
-        return hasText(bearerToken) && bearerToken.startsWith(PREFIX_BEARER) ?
-                bearerToken.substring(7) :
-                null;
-    }
+
 }

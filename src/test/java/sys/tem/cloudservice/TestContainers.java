@@ -1,6 +1,7 @@
 package sys.tem.cloudservice;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -14,13 +15,18 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import sys.tem.cloudservice.controller.AuthController;
+import sys.tem.cloudservice.exception.InvalidUserCredentialsException;
 import sys.tem.cloudservice.security.jwt.Generator;
 import sys.tem.cloudservice.security.model.dto.AuthToken;
 import sys.tem.cloudservice.security.model.dto.Login;
 import sys.tem.cloudservice.security.repository.UserRepository;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.lang.invoke.MethodHandles;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static sys.tem.cloudservice.CloudserviceApplication.MI;
+
+@Log4j2
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @SpringBootTest
 @Testcontainers
@@ -43,6 +49,7 @@ public class TestContainers {
 
     @BeforeAll
     static void raiseDB() {
+        log.info(MI, "---Start {} ---", MethodHandles.lookup().lookupClass().getTypeName());
         postgresContainer.start();
         System.setProperty("spring.datasource.url", postgresContainer.getJdbcUrl());
         System.setProperty("spring.datasource.username", postgresContainer.getUsername());
@@ -52,6 +59,7 @@ public class TestContainers {
     @AfterAll
     static void destroyDB() {
         postgresContainer.stop();
+        log.info(MI, "---End {} ---", MethodHandles.lookup().lookupClass().getTypeName());
     }
 
     @Test
@@ -83,20 +91,20 @@ public class TestContainers {
         // Пользователь с другим паролем
         Login request1 = new Login(
                 user,
-                pass+"1");
+                pass + "1");
         // Пользователь с несуществующим username
         Login request2 = new Login(
-                "user",
+                "user1",
                 pass);
 
         // Запрос аутентификации пользователь с другим паролем
-        ResponseEntity<?> response = authController.login(request1);
-        // Проверяем статус ответа
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertThrows(InvalidUserCredentialsException.class, () -> {
+            authController.login(request1);
+        });
+        // Запрос аутентификации пользователь с другим именем
+        assertThrows(InvalidUserCredentialsException.class, () -> {
+            authController.login(request2);
+        });
 
-        // Запрос аутентификации пользователь с несуществующим username
-        response = authController.login(request1);
-        // Проверяем статус ответа
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 }

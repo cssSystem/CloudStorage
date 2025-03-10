@@ -3,26 +3,29 @@ package sys.tem.cloudservice.cloud.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import sys.tem.cloudservice.cloud.model.dto.FileName;
 import sys.tem.cloudservice.cloud.model.entity.FileData;
 import sys.tem.cloudservice.cloud.repository.CloudRepository;
+import sys.tem.cloudservice.exception.FileNotSaveException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
+import static sys.tem.cloudservice.CloudserviceApplication.MI;
+
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class CloudService {
     private final CloudRepository cloudRepository;
 
-    public ResponseEntity<?> saveFile(MultipartFile file) throws IOException {
+    public void saveFile(MultipartFile file) throws IOException {
         if (!cloudRepository.existsByFilename(file.getOriginalFilename())) {
             cloudRepository.save(FileData.builder()
                     .filename(file.getOriginalFilename())
@@ -31,51 +34,51 @@ public class CloudService {
                     .build());
         }
         if (!cloudRepository.existsByFilename(file.getOriginalFilename())) {
-            throw new FileNotFoundException("Error input data");
+            logNot("Обнавление", file.getOriginalFilename());
+            throw new FileNotSaveException("Error input data");
         }
-        return ResponseEntity.ok().body("Success upload");
     }
 
     @Transactional
-    public ResponseEntity<?> downloadFile(FileName filename) throws FileNotFoundException {
+    public FileData downloadFile(FileName filename) throws FileNotFoundException {
         Optional<FileData> optionalFile = cloudRepository.findFileDataByFilename(filename.filename());
         if (optionalFile.isEmpty()) {
+            logNot("Отправка", filename.filename());
             throw new FileNotFoundException("Error input data");
         }
-        FileData fileData = optionalFile.get();
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + fileData.getFilename())
-                .body(fileData.getFile());
+        return optionalFile.get();
 
     }
 
     @Transactional
-    public ResponseEntity<?> deleteFile(FileName filename) throws FileNotFoundException {
+    public void deleteFile(FileName filename) throws FileNotFoundException {
         if (cloudRepository.existsByFilename(filename.filename())) {
             cloudRepository.deleteFileDataByFilename(filename.filename());
         } else {
+            logNot("Удаление", filename.filename());
             throw new FileNotFoundException("Error input data");
         }
-        return ResponseEntity.ok().body("Success deleted");
     }
 
-    public ResponseEntity<?> listFiles(int limit) {
+    public List<FileData> listFiles(int limit) {
         PageRequest page = PageRequest.of(0, limit);
-        var files = cloudRepository.findAll(page).getContent();
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(files);
+        return cloudRepository.findAll(page).getContent();
     }
 
     @Transactional
-    public ResponseEntity<?> updateFile(FileName filename, FileName newFileName) throws FileNotFoundException {
+    public void updateFile(FileName filename, FileName newFileName) throws FileNotFoundException {
         Optional<FileData> file = cloudRepository.findFileDataByFilename(filename.filename());
         if (file.isEmpty() || newFileName.filename().isEmpty()) {
+            logNot("Обнавление", filename.filename());
             throw new FileNotFoundException("Error input data");
         }
         FileData fileData = file.get();
         fileData.setFilename(newFileName.filename());
         cloudRepository.save(fileData);
-        return ResponseEntity.ok().body("Success upload");
+    }
+
+    public void logNot(String begin, String filename) {
+        log.info(MI, "{} файла {} закончилась неудачей", begin, filename);
+
     }
 }

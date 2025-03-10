@@ -1,8 +1,11 @@
 # Cloud Storage REST API
+
 ### Облачное хранилище файлов, реализованное с использованием REST API на основе Spring Boot для готовой реализации [FRONT](https://github.com/netology-code/jd-homeworks/tree/master/diploma/netology-diplom-frontend "Кликни меня :)").
+
 ### Позволяет пользователям загружать, скачивать, удалять, переименовывать файлы и просматривать список хранящихся файлов.
 
 ## Функционал
+
 * Аутентификация пользователя
 * Загрузка файлов
 * Скачивание файлов
@@ -11,8 +14,10 @@
 * Просмотр списка файлов
 
 ## Пользователь для тестирования
->Login: *user@user.ru*\
->Password: *password*
+
+> Login: *user@user.ru*\
+> Password: *password*
 
 ## Запуск
+
 В корневой папке выполнить команду: *docker-compose up*
